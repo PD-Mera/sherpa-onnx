@@ -67,6 +67,9 @@ Ort::Value Clone(OrtAllocator *allocator, const Ort::Value *v);
 // Return a shallow copy
 Ort::Value View(Ort::Value *v);
 
+// Return a shallow copy with a new shape
+Ort::Value View(Ort::Value *v, const std::vector<int64_t> &shape);
+
 float ComputeSum(const Ort::Value *v, int32_t n = -1);
 float ComputeMean(const Ort::Value *v, int32_t n = -1);
 

@@ -117,7 +117,23 @@ void OnlineTransducerGreedySearchDecoder::Decode(
 
   for (int32_t t = 0; t != num_frames; ++t) {
     if (!logits_valid) {
-      all_logits = model_->RunJoiner(View(&encoder_out), View(&decoder_out));
+      std::vector<int64_t> encoder_out_shape =
+          encoder_out.GetTensorTypeAndShapeInfo().GetShape();
+      std::vector<int64_t> flattened_encoder_out_shape = {
+          encoder_out_shape[0] * encoder_out_shape[1], encoder_out_shape[2]};
+      Ort::Value reshaped_encoder_out =
+          View(&encoder_out, flattened_encoder_out_shape);
+
+      std::vector<int32_t> hyps_row_splits(batch_size + 1);
+      for (int i = 0; i <= batch_size; ++i) {
+        hyps_row_splits[i] = i * num_frames;
+      }
+
+      Ort::Value repeated_decoder_out =
+          Repeat(model_->Allocator(), &decoder_out, hyps_row_splits);
+
+      all_logits = model_->RunJoiner(std::move(reshaped_encoder_out),
+                                     std::move(repeated_decoder_out));
       logits_valid = true;
     }
 

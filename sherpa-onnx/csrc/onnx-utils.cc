@@ -190,6 +190,11 @@ Ort::Value Clone(OrtAllocator *allocator, const Ort::Value *v) {
 Ort::Value View(Ort::Value *v) {
   auto type_and_shape = v->GetTensorTypeAndShapeInfo();
   std::vector<int64_t> shape = type_and_shape.GetShape();
+  return View(v, shape);
+}
+
+Ort::Value View(Ort::Value *v, const std::vector<int64_t> &shape) {
+  auto type_and_shape = v->GetTensorTypeAndShapeInfo();
 
 #if ORT_API_VERSION >= 14
   auto memory_info = v->GetTensorMemoryInfo();
@@ -208,15 +213,18 @@ Ort::Value View(Ort::Value *v) {
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32:
       return Ort::Value::CreateTensor(
           memory_info, v->GetTensorMutableData<int32_t>(),
-          type_and_shape.GetElementCount(), shape.data(), shape.size());
+          type_and_shape.GetElementCount() * sizeof(int32_t), shape.data(),
+          shape.size());
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
       return Ort::Value::CreateTensor(
           memory_info, v->GetTensorMutableData<int64_t>(),
-          type_and_shape.GetElementCount(), shape.data(), shape.size());
+          type_and_shape.GetElementCount() * sizeof(int64_t), shape.data(),
+          shape.size());
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
       return Ort::Value::CreateTensor(
           memory_info, v->GetTensorMutableData<float>(),
-          type_and_shape.GetElementCount(), shape.data(), shape.size());
+          type_and_shape.GetElementCount() * sizeof(float), shape.data(),
+          shape.size());
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16:
       return Ort::Value::CreateTensor(
           memory_info, v->GetTensorMutableData<uint16_t>(),
@@ -225,11 +233,13 @@ Ort::Value View(Ort::Value *v) {
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16:
       return Ort::Value::CreateTensor(
           memory_info, v->GetTensorMutableData<uint16_t>(),
-          type_and_shape.GetElementCount(), shape.data(), shape.size());
+          type_and_shape.GetElementCount() * sizeof(uint16_t), shape.data(),
+          shape.size());
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL:
       return Ort::Value::CreateTensor(
           memory_info, v->GetTensorMutableData<bool>(),
-          type_and_shape.GetElementCount(), shape.data(), shape.size());
+          type_and_shape.GetElementCount() * sizeof(bool), shape.data(),
+          shape.size());
     default:
       SHERPA_ONNX_LOGE("Unsupported type: %d\n",
                        static_cast<int32_t>(type_and_shape.GetElementType()));
