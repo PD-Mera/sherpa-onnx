@@ -37,7 +37,9 @@ OnlineZipformerTransducerModel::OnlineZipformerTransducerModel(
     const OnlineModelConfig &config)
     : env_(ORT_LOGGING_LEVEL_ERROR),
       config_(config),
-      sess_opts_(GetSessionOptions(config)),
+      encoder_sess_opts_(GetSessionOptions(config)),
+      decoder_sess_opts_(GetSessionOptions(config, "decoder")),
+      joiner_sess_opts_(GetSessionOptions(config, "joiner")),
       allocator_{} {
   {
     auto buf = ReadFile(config.transducer.encoder);
@@ -60,7 +62,9 @@ OnlineZipformerTransducerModel::OnlineZipformerTransducerModel(
     Manager *mgr, const OnlineModelConfig &config)
     : env_(ORT_LOGGING_LEVEL_ERROR),
       config_(config),
-      sess_opts_(GetSessionOptions(config)),
+      encoder_sess_opts_(GetSessionOptions(config)),
+      decoder_sess_opts_(GetSessionOptions(config, "decoder")),
+      joiner_sess_opts_(GetSessionOptions(config, "joiner")),
       allocator_{} {
   {
     auto buf = ReadFile(mgr, config.transducer.encoder);
@@ -81,7 +85,8 @@ OnlineZipformerTransducerModel::OnlineZipformerTransducerModel(
 void OnlineZipformerTransducerModel::InitEncoder(void *model_data,
                                                  size_t model_data_length) {
   encoder_sess_ = std::make_unique<Ort::Session>(env_, model_data,
-                                                 model_data_length, sess_opts_);
+                                                 model_data_length,
+                                                 encoder_sess_opts_);
 
   GetInputNames(encoder_sess_.get(), &encoder_input_names_,
                 &encoder_input_names_ptr_);
@@ -143,7 +148,8 @@ void OnlineZipformerTransducerModel::InitEncoder(void *model_data,
 void OnlineZipformerTransducerModel::InitDecoder(void *model_data,
                                                  size_t model_data_length) {
   decoder_sess_ = std::make_unique<Ort::Session>(env_, model_data,
-                                                 model_data_length, sess_opts_);
+                                                 model_data_length,
+                                                 decoder_sess_opts_);
 
   GetInputNames(decoder_sess_.get(), &decoder_input_names_,
                 &decoder_input_names_ptr_);
@@ -172,7 +178,8 @@ void OnlineZipformerTransducerModel::InitDecoder(void *model_data,
 void OnlineZipformerTransducerModel::InitJoiner(void *model_data,
                                                 size_t model_data_length) {
   joiner_sess_ = std::make_unique<Ort::Session>(env_, model_data,
-                                                model_data_length, sess_opts_);
+                                                model_data_length,
+                                                joiner_sess_opts_);
 
   GetInputNames(joiner_sess_.get(), &joiner_input_names_,
                 &joiner_input_names_ptr_);

@@ -295,12 +295,13 @@ Ort::SessionOptions GetSessionOptions(const OnlineModelConfig &config) {
 Ort::SessionOptions GetSessionOptions(const OnlineModelConfig &config,
                                       const std::string &model_type) {
   /*
-    Transducer models : Only encoder will run with tensorrt,
-                        decoder and joiner will run with cuda
+    Transducer models : Only encoder will run with tensorrt/cuda,
+                        decoder and joiner will run with cpu
   */
-  if (config.provider_config.provider == "trt" &&
+  if ((config.provider_config.provider == "trt" ||
+       config.provider_config.provider == "cuda") &&
       (model_type == "decoder" || model_type == "joiner")) {
-    return GetSessionOptionsImpl(config.num_threads, "cuda",
+    return GetSessionOptionsImpl(config.num_threads, "cpu",
                                  &config.provider_config);
   }
   return GetSessionOptionsImpl(config.num_threads,
