@@ -112,16 +112,20 @@ void OnlineTransducerGreedySearchDecoder::Decode(
     decoder_out = model_->RunDecoder(std::move(decoder_input));
   }
 
-  for (int32_t t = 0; t != num_frames; ++t) {
-    Ort::Value cur_encoder_out =
-        GetEncoderOutFrame(model_->Allocator(), &encoder_out, t);
-    Ort::Value logit =
-        model_->RunJoiner(std::move(cur_encoder_out), View(&decoder_out));
+  Ort::Value all_logits{nullptr};
+  bool logits_valid = false;
 
-    float *p_logit = logit.GetTensorMutableData<float>();
+  for (int32_t t = 0; t != num_frames; ++t) {
+    if (!logits_valid) {
+      all_logits = model_->RunJoiner(View(&encoder_out), View(&decoder_out));
+      logits_valid = true;
+    }
+
+    float *p_all_logits = all_logits.GetTensorMutableData<float>();
 
     bool emitted = false;
-    for (int32_t i = 0; i < batch_size; ++i, p_logit += vocab_size) {
+    for (int32_t i = 0; i < batch_size; ++i) {
+      float *p_logit = p_all_logits + (i * num_frames + t) * vocab_size;
       auto &r = (*result)[i];
       if (blank_penalty_ > 0.0) {
         p_logit[0] -= blank_penalty_;  // assuming blank id is 0
@@ -160,6 +164,7 @@ void OnlineTransducerGreedySearchDecoder::Decode(
     if (emitted) {
       Ort::Value decoder_input = model_->BuildDecoderInput(*result);
       decoder_out = model_->RunDecoder(std::move(decoder_input));
+      logits_valid = false;
     }
   }
 
